@@ -11,7 +11,11 @@ export default function Home() {
   });
   const [editedImage, setEditedImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);  // Estado para gerenciar erros
+  const [error, setError] = useState(null); // Estado para gerenciar erros
+  const [previewImages, setPreviewImages] = useState({
+    image1: null,
+    image2: null,
+  });
 
   const handleFileChange = (event) => {
     const { name, files } = event.target;
@@ -19,8 +23,12 @@ export default function Home() {
       ...prevFiles,
       [name]: files[0],
     }));
+    setPreviewImages((prevImages) => ({
+      ...prevImages,
+      [name]: URL.createObjectURL(files[0]),
+    }));
     setEditedImage(null);
-    setError(null);  // Limpa o erro ao selecionar um novo arquivo
+    setError(null); // Limpa o erro ao selecionar um novo arquivo
   };
 
   const handleSubmit = async (event) => {
@@ -33,7 +41,7 @@ export default function Home() {
     formData.append("box_image", selectedFiles.image2);
 
     setLoading(true);
-    setError(null);  // Reseta o erro ao começar a requisição
+    setError(null); // Reseta o erro ao começar a requisição
 
     try {
       const response = await axios.post(
@@ -51,7 +59,7 @@ export default function Home() {
       setEditedImage(imageUrl);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
-      setError("Falha ao processar as imagens. Tente novamente.");  // Define a mensagem de erro
+      setError("Falha ao processar as imagens. Tente novamente."); // Define a mensagem de erro
     } finally {
       setLoading(false);
     }
@@ -83,7 +91,7 @@ export default function Home() {
             disabled={!selectedFiles.image1 || !selectedFiles.image2 || loading}
             className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
-            {loading ? "Processando..." : "Enviar Imagens"}
+            {loading ? "Processando..." : "Processar"}
           </button>
         </form>
 
@@ -93,9 +101,43 @@ export default function Home() {
           </div>
         )}
 
+        {!loading &&
+          !editedImage &&
+          (previewImages.image1 || previewImages.image2) && (
+            <div className="mt-6">
+              {previewImages.image1 && (
+                <>
+                  <h2 className="text-lg font-semibold mb-2">Teste:</h2>
+                  <Image
+                    src={previewImages.image1}
+                    alt="Imagem carregada 1"
+                    className="rounded-lg shadow-lg"
+                    width={500}
+                    height={500}
+                    objectFit="contain" // Mantém a proporção original
+                  />
+                </>
+              )}
+
+              {previewImages.image2 && (
+                <>
+                  <h2 className="text-lg font-semibold mb-2">Template:</h2>
+                  <Image
+                    src={previewImages.image2}
+                    alt="Imagem carregada 2"
+                    className="rounded-lg shadow-lg"
+                    width={100}
+                    height={100} // Mantém as proporções, mas ajusta para que a altura seja 250px
+                    objectFit="contain" // Mantém a proporção original
+                  />
+                </>
+              )}
+            </div>
+          )}
+
         {editedImage && (
           <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">Imagem Editada:</h2>
+            <h2 className="text-lg font-semibold mb-2">Teste corrigido:</h2>
             <Image
               src={editedImage}
               alt="Imagem editada"
