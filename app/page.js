@@ -27,7 +27,6 @@ export default function Home() {
       ...prevImages,
       [name]: URL.createObjectURL(files[0]),
     }));
-    setEditedImage(null);
     setError(null); // Limpa o erro ao selecionar um novo arquivo
   };
 
@@ -67,83 +66,83 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Editor de Imagens
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="file"
-            name="image1"
-            onChange={handleFileChange}
-            accept="image/*"
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          <input
-            type="file"
-            name="image2"
-            onChange={handleFileChange}
-            accept="image/*"
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          <button
-            type="submit"
-            disabled={!selectedFiles.image1 || !selectedFiles.image2 || loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            {loading ? "Processando..." : "Processar"}
-          </button>
-        </form>
+      <div className="w-full max-w-10xl p-8 bg-white shadow-lg rounded-lg flex">
+        <div className="w-1/5 flex flex-col space-y-3">
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Escolha um teste e um template
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="file"
+              name="image1"
+              onChange={handleFileChange}
+              accept="image/*"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <input
+              type="file"
+              name="image2"
+              onChange={handleFileChange}
+              accept="image/*"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <button
+              type="submit"
+              disabled={
+                !selectedFiles.image1 || !selectedFiles.image2 || loading
+              }
+              className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            >
+              {loading ? "Processando..." : "Processar"}
+            </button>
+          </form>
 
-        {error && (
-          <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+        </div>
 
-        {!loading &&
-          !editedImage &&
-          (previewImages.image1 || previewImages.image2) && (
-            <div className="mt-6">
-              {previewImages.image1 && (
-                <>
-                  <h2 className="text-lg font-semibold mb-2">Teste:</h2>
-                  <Image
-                    src={previewImages.image1}
-                    alt="Imagem carregada 1"
-                    className="rounded-lg shadow-lg"
-                    width={500}
-                    height={500}
-                    objectFit="contain" // Mantém a proporção original
-                  />
-                </>
-              )}
-
-              {previewImages.image2 && (
-                <>
-                  <h2 className="text-lg font-semibold mb-2">Template:</h2>
-                  <Image
-                    src={previewImages.image2}
-                    alt="Imagem carregada 2"
-                    className="rounded-lg shadow-lg"
-                    width={100}
-                    height={100} // Mantém as proporções, mas ajusta para que a altura seja 250px
-                    objectFit="contain" // Mantém a proporção original
-                  />
-                </>
-              )}
+        <div className="flex flex-col space-y-3 w-2/5 items-center">
+          {previewImages.image1 && (
+            <div>
+              <h2 className="text-lg font-semibold">Teste:</h2>
+              <Image
+                src={previewImages.image1}
+                alt="Imagem carregada 1"
+                className="rounded-lg shadow-lg"
+                width={500} // Ajuste conforme necessário
+                height={500} // Ajuste conforme necessário
+                objectFit="contain"
+              />
             </div>
           )}
 
+          {previewImages.image2 && (
+            <div>
+              <h2 className="text-lg font-semibold">Template:</h2>
+              <Image
+                src={previewImages.image2}
+                alt="Imagem carregada 2"
+                className="rounded-lg shadow-lg"
+                width={100} // Ajuste conforme necessário
+                height={100} // Ajuste conforme necessário
+                objectFit="contain"
+              />
+            </div>
+          )}
+        </div>
+
         {editedImage && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">Teste corrigido:</h2>
+          <div className="w-2/5 items-center">
+            <h2 className="text-lg font-semibold">Teste corrigido:</h2>
             <Image
               src={editedImage}
               alt="Imagem editada"
               className="rounded-lg shadow-lg"
-              width={500}
-              height={500}
+              width={500} // Ajuste conforme necessário
+              height={500} // Ajuste conforme necessário
             />
           </div>
         )}
