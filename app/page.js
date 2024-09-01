@@ -1,22 +1,16 @@
 "use client";
 
-import axios from "axios";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import FileInput from "@/app/components/FileInput";
+import ImagePreview from "@/app/components/ImagePreview";
+import ThresholdSlider from "@/app/components/ThresholdSlider";
+import { useImageProcessing } from "@/app/hooks/useImageProcessing";
+import { calculateScaledCoordinates } from "@/app/utils/imageUtils";
 import { Layer, Rect, Stage } from "react-konva";
 
+const IMAGE_HEIGHT = 500;
+
 export default function Home() {
-  const [selectedFiles, setSelectedFiles] = useState({
-    image1: null,
-    image2: [],
-  });
-  const [objects, setObjects] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [previewImages, setPreviewImages] = useState({
-    image1: null,
-    image2: [],
-  });
   const [threshold, setThreshold] = useState(0.5);
   const [imageDimensions, setImageDimensions] = useState({
     width: 0,
@@ -24,146 +18,23 @@ export default function Home() {
   });
   const [scaledDimensions, setScaledDimensions] = useState({
     width: 0,
-    height: 500,
+    height: IMAGE_HEIGHT,
   });
   const imageRef = useRef(null);
-  const debounceTimeout = useRef(null);
 
-  const handleFileChange = (event) => {
-    const { name, files } = event.target;
-    if (files.length === 0) {
-      return;
-    }
-    if (name === "image1") {
-      setSelectedFiles((prevFiles) => ({
-        ...prevFiles,
-        [name]: files[0],
-      }));
-      setPreviewImages((prevImages) => ({
-        ...prevImages,
-        [name]: URL.createObjectURL(files[0]),
-      }));
-    } else if (name === "image2") {
-      const fileArray = Array.from(files);
-      setSelectedFiles((prevFiles) => ({
-        ...prevFiles,
-        [name]: fileArray,
-      }));
-      setPreviewImages((prevImages) => ({
-        ...prevImages,
-        [name]: fileArray.map((file) => URL.createObjectURL(file)),
-      }));
-    }
-    setObjects([]);
-    setError(null);
-  };
-
-  useEffect(() => {
-    if (selectedFiles.image1 && selectedFiles.image2.length > 0) {
-      debounceProcessImages();
-    }
-  }, [selectedFiles.image1, selectedFiles.image2, threshold]);
-
-  const debounceProcessImages = () => {
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-    }
-    debounceTimeout.current = setTimeout(() => {
-      processImages();
-    }, 800); // Ajuste o tempo de debounce conforme necessário
-  };
-
-  const processImages = async () => {
-    if (!selectedFiles.image1 || selectedFiles.image2.length === 0) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("test_image", selectedFiles.image1);
-    selectedFiles.image2.forEach((file, index) => {
-      formData.append(`box_images`, file);
-    });
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.post(
-        `http://127.0.0.1:8000/find_boxes/?threshold=${threshold}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      setObjects(response.data.objects);
-    } catch (error) {
-      console.error("Erro ao enviar as imagens:", error);
-      setError("Falha ao processar as imagens. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    selectedFiles,
+    objects,
+    loading,
+    error,
+    previewImages,
+    handleFileChange,
+    processImages,
+  } = useImageProcessing(threshold);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    if (!selectedFiles.image1 || selectedFiles.image2.length === 0) {
-      setError("Falha ao processar as imagens. Tente novamente.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("test_image", selectedFiles.image1);
-    selectedFiles.image2.forEach((file, index) => {
-      formData.append(`box_images`, file);
-    });
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.post(
-        `http://127.0.0.1:8000/find_answers/?threshold=${threshold}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      setObjects(response.data.objects);
-    } catch (error) {
-      console.error("Erro ao enviar as imagens:", error);
-      setError("Falha ao processar as imagens. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    setObjects([]);
-  }, [threshold]);
-
-  useEffect(() => {
-    if (imageRef.current) {
-      const { naturalWidth, naturalHeight } = imageRef.current;
-      setImageDimensions({ width: naturalWidth, height: naturalHeight });
-      const aspectRatio = naturalWidth / naturalHeight;
-      setScaledDimensions({ width: 500 * aspectRatio, height: 500 });
-    }
-  }, [previewImages.image1]);
-
-  const calculateScaledCoordinates = (coord) => {
-    const scaleX = scaledDimensions.width / imageDimensions.width;
-    const scaleY = scaledDimensions.height / imageDimensions.height;
-    return {
-      x: coord.x_min * scaleX,
-      y: coord.y_min * scaleY,
-      width: (coord.x_max - coord.x_min) * scaleX,
-      height: (coord.y_max - coord.y_min) * scaleY,
-    };
+    processImages("find_answers");
   };
 
   return (
@@ -174,37 +45,12 @@ export default function Home() {
             Escolha um teste e um template
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="file"
-              name="image1"
-              onChange={handleFileChange}
-              accept="image/*"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            <FileInput name="image1" onChange={handleFileChange} />
+            <FileInput name="image2" onChange={handleFileChange} multiple />
+            <ThresholdSlider
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
             />
-            <input
-              type="file"
-              name="image2"
-              onChange={handleFileChange}
-              accept="image/*"
-              multiple
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            <div className="flex flex-col space-y-2">
-              <label htmlFor="threshold" className="text-sm font-semibold">
-                Threshold: {threshold}
-              </label>
-              <input
-                type="range"
-                id="threshold"
-                name="threshold"
-                min="0"
-                max="1"
-                step="0.01"
-                value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
-                className="w-full"
-              />
-            </div>
             <button
               type="submit"
               disabled={
@@ -217,7 +63,6 @@ export default function Home() {
               {loading ? "Processando..." : "Processar"}
             </button>
           </form>
-
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
               {error}
@@ -228,7 +73,7 @@ export default function Home() {
         <div className="flex flex-col space-y-3 w-2/3 items-center">
           <h2 className="text-lg font-semibold">Teste:</h2>
           {!previewImages.image1 && (
-            <div className="flex h-[500px] items-center">
+            <div className={`flex h-[${IMAGE_HEIGHT}px] items-center`}>
               <p>Selecione um teste para exibir a visualização.</p>
             </div>
           )}
@@ -240,27 +85,22 @@ export default function Home() {
                 height: scaledDimensions.height,
               }}
             >
-              <Image
+              <ImagePreview
                 ref={imageRef}
                 src={previewImages.image1}
-                alt="Imagem carregada 1"
-                className="rounded-lg shadow-lg"
-                height={0}
-                width={0}
-                onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+                alt="Teste"
+                width={scaledDimensions.width}
+                height={`${IMAGE_HEIGHT}px`}
+                onLoad={({ naturalWidth, naturalHeight }) => {
                   setImageDimensions({
                     width: naturalWidth,
                     height: naturalHeight,
                   });
                   const aspectRatio = naturalWidth / naturalHeight;
                   setScaledDimensions({
-                    width: 500 * aspectRatio,
-                    height: 500,
+                    width: IMAGE_HEIGHT * aspectRatio,
+                    height: IMAGE_HEIGHT,
                   });
-                }}
-                style={{
-                  width: scaledDimensions.width || "auto",
-                  height: "500px",
                 }}
               />
               {objects.length > 0 && (
@@ -272,7 +112,9 @@ export default function Home() {
                   <Layer>
                     {objects.map((obj, index) => {
                       const scaledCoord = calculateScaledCoordinates(
-                        obj.bounding_box
+                        obj.bounding_box,
+                        scaledDimensions,
+                        imageDimensions
                       );
                       return (
                         <Rect
@@ -281,7 +123,7 @@ export default function Home() {
                           y={scaledCoord.y}
                           width={scaledCoord.width}
                           height={scaledCoord.height}
-                          stroke={obj.name == "empty" ? "red" : "green"}
+                          stroke={obj.name === "empty" ? "red" : "green"}
                           strokeWidth={2}
                         />
                       );
@@ -300,14 +142,12 @@ export default function Home() {
           {previewImages.image2.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {previewImages.image2.map((src, index) => (
-                <Image
+                <ImagePreview
                   key={index}
                   src={src}
-                  alt={`Imagem carregada ${index + 2}`}
-                  className="rounded-lg shadow-lg"
-                  width={0}
-                  height={0}
-                  style={{ width: "auto", height: "100px" }}
+                  alt={`Template ${index + 1}`}
+                  width="auto"
+                  height="100px"
                 />
               ))}
             </div>
