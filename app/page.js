@@ -27,6 +27,7 @@ export default function Home() {
       ...prevImages,
       [name]: URL.createObjectURL(files[0]),
     }));
+    setEditedImage(null); // Limpa a imagem processada quando um novo arquivo é selecionado
     setError(null); // Limpa o erro ao selecionar um novo arquivo
   };
 
