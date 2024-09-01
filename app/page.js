@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Image from "next/image";
-import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
-import useImage from "use-image";
+import { useEffect, useRef, useState } from "react";
+import { Layer, Rect, Stage } from "react-konva";
 
 export default function Home() {
   const [selectedFiles, setSelectedFiles] = useState({
