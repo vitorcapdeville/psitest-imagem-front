@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Image from "next/image";
 
@@ -16,6 +16,7 @@ export default function Home() {
     image1: null,
     image2: null,
   });
+  const [threshold, setThreshold] = useState(0.5); // Novo estado para o threshold
 
   const handleFileChange = (event) => {
     const { name, files } = event.target;
@@ -45,7 +46,7 @@ export default function Home() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/mark_answers/?threshold=0.5&prediction_threshold=0.9",
+        `http://127.0.0.1:8000/mark_answers/?threshold=${threshold}&prediction_threshold=0.9`,
         formData,
         {
           headers: {
@@ -63,6 +64,10 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setEditedImage(null); // Resetar a imagem editada quando o threshold for alterado
+  }, [threshold]);
 
   return (
     <div className="min-h-screen w-full max-w-10xl p-8 bg-white shadow-lg rounded-lg flex">
@@ -85,6 +90,22 @@ export default function Home() {
             accept="image/*"
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
+          <div className="flex flex-col space-y-2">
+            <label htmlFor="threshold" className="text-sm font-semibold">
+              Threshold: {threshold}
+            </label>
+            <input
+              type="range"
+              id="threshold"
+              name="threshold"
+              min="0"
+              max="1"
+              step="0.01"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              className="w-full"
+            />
+          </div>
           <button
             type="submit"
             disabled={!selectedFiles.image1 || !selectedFiles.image2 || loading}
