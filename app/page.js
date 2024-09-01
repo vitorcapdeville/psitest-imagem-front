@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Image from "next/image";
+import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
+import useImage from "use-image";
 
 export default function Home() {
   const [selectedFiles, setSelectedFiles] = useState({
     image1: null,
     image2: [],
   });
-  const [editedImage, setEditedImage] = useState(null);
+  const [coordinates, setCoordinates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [previewImages, setPreviewImages] = useState({
@@ -17,9 +19,22 @@ export default function Home() {
     image2: [],
   });
   const [threshold, setThreshold] = useState(0.5);
+  const [image] = useImage(previewImages.image1);
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [scaledDimensions, setScaledDimensions] = useState({
+    width: 0,
+    height: 500,
+  });
+  const imageRef = useRef(null);
 
   const handleFileChange = (event) => {
     const { name, files } = event.target;
+    if (files.length === 0) {
+      return;
+    }
     if (name === "image1") {
       setSelectedFiles((prevFiles) => ({
         ...prevFiles,
@@ -40,7 +55,7 @@ export default function Home() {
         [name]: fileArray.map((file) => URL.createObjectURL(file)),
       }));
     }
-    setEditedImage(null);
+    setCoordinates([]);
     setError(null);
   };
 
@@ -63,17 +78,16 @@ export default function Home() {
 
     try {
       const response = await axios.post(
-        `http://127.0.0.1:8000/mark_answers/?threshold=${threshold}&prediction_threshold=0.9`,
+        `http://127.0.0.1:8000/find_boxes/?threshold=${threshold}`,
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-          responseType: "blob",
         }
       );
-      const imageUrl = URL.createObjectURL(response.data);
-      setEditedImage(imageUrl);
+      console.log(response.data);
+      setCoordinates(response.data); // Supondo que a API retorna um array de coordenadas
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
@@ -83,8 +97,28 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setEditedImage(null);
+    setCoordinates([]);
   }, [threshold]);
+
+  useEffect(() => {
+    if (imageRef.current) {
+      const { naturalWidth, naturalHeight } = imageRef.current;
+      setImageDimensions({ width: naturalWidth, height: naturalHeight });
+      const aspectRatio = naturalWidth / naturalHeight;
+      setScaledDimensions({ width: 500 * aspectRatio, height: 500 });
+    }
+  }, [previewImages.image1]);
+
+  const calculateScaledCoordinates = (coord) => {
+    const scaleX = scaledDimensions.width / imageDimensions.width;
+    const scaleY = scaledDimensions.height / imageDimensions.height;
+    return {
+      x: coord.x_min * scaleX,
+      y: coord.y_min * scaleY,
+      width: (coord.x_max - coord.x_min) * scaleX,
+      height: (coord.y_max - coord.y_min) * scaleY,
+    };
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -154,12 +188,24 @@ export default function Home() {
           )}
           {previewImages.image1 && (
             <Image
+              ref={imageRef}
               src={previewImages.image1}
               alt="Imagem carregada 1"
               className="rounded-lg shadow-lg"
               height={0}
               width={0}
-              style={{ width: "auto", height: "500px" }}
+              onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+                setImageDimensions({
+                  width: naturalWidth,
+                  height: naturalHeight,
+                });
+                const aspectRatio = naturalWidth / naturalHeight;
+                setScaledDimensions({ width: 500 * aspectRatio, height: 500 });
+              }}
+              style={{
+                width: scaledDimensions.width || "auto",
+                height: "500px",
+              }}
             />
           )}
           <h2 className="text-lg font-semibold">Templates:</h2>
@@ -187,23 +233,42 @@ export default function Home() {
 
         <div className="flex flex-col space-y-3 w-2/5 items-center">
           <h2 className="text-lg font-semibold">Teste corrigido:</h2>
-          {!editedImage && (
+          {!coordinates.length && (
             <div className="flex h-[500px] items-center">
               <p>
-                Quando o input for processado, a imagem marcada será exibida
+                Quando o input for processado, as coordenadas serão exibidas
                 aqui.
               </p>
             </div>
           )}
-          {editedImage && (
-            <Image
-              src={editedImage}
-              alt="Imagem editada"
+          {coordinates.length > 0 && (
+            <Stage
               className="rounded-lg shadow-lg"
-              width={0}
-              height={0}
-              style={{ width: "auto", height: "500px" }}
-            />
+              width={scaledDimensions.width}
+              height={scaledDimensions.height}
+            >
+              <Layer>
+                <KonvaImage
+                  image={image}
+                  width={scaledDimensions.width}
+                  height={scaledDimensions.height}
+                />
+                {coordinates.map((coord, index) => {
+                  const scaledCoord = calculateScaledCoordinates(coord);
+                  return (
+                    <Rect
+                      key={index}
+                      x={scaledCoord.x}
+                      y={scaledCoord.y}
+                      width={scaledCoord.width}
+                      height={scaledCoord.height}
+                      stroke="red"
+                      strokeWidth={2}
+                    />
+                  );
+                })}
+              </Layer>
+            </Stage>
           )}
         </div>
       </div>
