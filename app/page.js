@@ -29,6 +29,7 @@ export default function Home() {
     height: 500,
   });
   const imageRef = useRef(null);
+  const debounceTimeout = useRef(null);
 
   const handleFileChange = (event) => {
     const { name, files } = event.target;
@@ -59,11 +60,23 @@ export default function Home() {
     setError(null);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (selectedFiles.image1 && selectedFiles.image2.length > 0) {
+      debounceProcessImages();
+    }
+  }, [selectedFiles.image1, selectedFiles.image2, threshold]);
 
+  const debounceProcessImages = () => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+    debounceTimeout.current = setTimeout(() => {
+      processImages();
+    }, 800); // Ajuste o tempo de debounce conforme necessário
+  };
+
+  const processImages = async () => {
     if (!selectedFiles.image1 || selectedFiles.image2.length === 0) {
-      setError("Falha ao processar as imagens. Tente novamente.");
       return;
     }
 
@@ -87,7 +100,44 @@ export default function Home() {
         }
       );
       console.log(response.data);
-      setCoordinates(response.data); // Supondo que a API retorna um array de coordenadas
+      setCoordinates(response.data.boxes);
+    } catch (error) {
+      console.error("Erro ao enviar as imagens:", error);
+      setError("Falha ao processar as imagens. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!selectedFiles.image1 || selectedFiles.image2.length === 0) {
+      setError("Falha ao processar as imagens. Tente novamente.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("test_image", selectedFiles.image1);
+    selectedFiles.image2.forEach((file, index) => {
+      formData.append(`box_images`, file);
+    });
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(
+        `http://127.0.0.1:8000/find_answers/?threshold=${threshold}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      console.log(response.data);
+      setCoordinates(response.data.boxes);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
@@ -179,7 +229,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex flex-col space-y-3 w-2/5 items-center">
+        <div className="flex flex-col space-y-3 w-2/3 items-center">
           <h2 className="text-lg font-semibold">Teste:</h2>
           {!previewImages.image1 && (
             <div className="flex h-[500px] items-center">
@@ -187,26 +237,61 @@ export default function Home() {
             </div>
           )}
           {previewImages.image1 && (
-            <Image
-              ref={imageRef}
-              src={previewImages.image1}
-              alt="Imagem carregada 1"
-              className="rounded-lg shadow-lg"
-              height={0}
-              width={0}
-              onLoadingComplete={({ naturalWidth, naturalHeight }) => {
-                setImageDimensions({
-                  width: naturalWidth,
-                  height: naturalHeight,
-                });
-                const aspectRatio = naturalWidth / naturalHeight;
-                setScaledDimensions({ width: 500 * aspectRatio, height: 500 });
-              }}
+            <div
               style={{
-                width: scaledDimensions.width || "auto",
-                height: "500px",
+                position: "relative",
+                width: scaledDimensions.width,
+                height: scaledDimensions.height,
               }}
-            />
+            >
+              <Image
+                ref={imageRef}
+                src={previewImages.image1}
+                alt="Imagem carregada 1"
+                className="rounded-lg shadow-lg"
+                height={0}
+                width={0}
+                onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+                  setImageDimensions({
+                    width: naturalWidth,
+                    height: naturalHeight,
+                  });
+                  const aspectRatio = naturalWidth / naturalHeight;
+                  setScaledDimensions({
+                    width: 500 * aspectRatio,
+                    height: 500,
+                  });
+                }}
+                style={{
+                  width: scaledDimensions.width || "auto",
+                  height: "500px",
+                }}
+              />
+              {coordinates.length > 0 && (
+                <Stage
+                  width={scaledDimensions.width}
+                  height={scaledDimensions.height}
+                  style={{ position: "absolute", top: 0, left: 0 }}
+                >
+                  <Layer>
+                    {coordinates.map((coord, index) => {
+                      const scaledCoord = calculateScaledCoordinates(coord);
+                      return (
+                        <Rect
+                          key={index}
+                          x={scaledCoord.x}
+                          y={scaledCoord.y}
+                          width={scaledCoord.width}
+                          height={scaledCoord.height}
+                          stroke="red"
+                          strokeWidth={2}
+                        />
+                      );
+                    })}
+                  </Layer>
+                </Stage>
+              )}
+            </div>
           )}
           <h2 className="text-lg font-semibold">Templates:</h2>
           {previewImages.image2.length === 0 && (
@@ -228,47 +313,6 @@ export default function Home() {
                 />
               ))}
             </div>
-          )}
-        </div>
-
-        <div className="flex flex-col space-y-3 w-2/5 items-center">
-          <h2 className="text-lg font-semibold">Teste corrigido:</h2>
-          {!coordinates.length && (
-            <div className="flex h-[500px] items-center">
-              <p>
-                Quando o input for processado, as coordenadas serão exibidas
-                aqui.
-              </p>
-            </div>
-          )}
-          {coordinates.length > 0 && (
-            <Stage
-              className="rounded-lg shadow-lg"
-              width={scaledDimensions.width}
-              height={scaledDimensions.height}
-            >
-              <Layer>
-                <KonvaImage
-                  image={image}
-                  width={scaledDimensions.width}
-                  height={scaledDimensions.height}
-                />
-                {coordinates.map((coord, index) => {
-                  const scaledCoord = calculateScaledCoordinates(coord);
-                  return (
-                    <Rect
-                      key={index}
-                      x={scaledCoord.x}
-                      y={scaledCoord.y}
-                      width={scaledCoord.width}
-                      height={scaledCoord.height}
-                      stroke="red"
-                      strokeWidth={2}
-                    />
-                  );
-                })}
-              </Layer>
-            </Stage>
           )}
         </div>
       </div>
