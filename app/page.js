@@ -11,7 +11,7 @@ export default function Home() {
     image1: null,
     image2: [],
   });
-  const [coordinates, setCoordinates] = useState([]);
+  const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [previewImages, setPreviewImages] = useState({
@@ -19,7 +19,6 @@ export default function Home() {
     image2: [],
   });
   const [threshold, setThreshold] = useState(0.5);
-  const [image] = useImage(previewImages.image1);
   const [imageDimensions, setImageDimensions] = useState({
     width: 0,
     height: 0,
@@ -56,7 +55,7 @@ export default function Home() {
         [name]: fileArray.map((file) => URL.createObjectURL(file)),
       }));
     }
-    setCoordinates([]);
+    setObjects([]);
     setError(null);
   };
 
@@ -99,8 +98,7 @@ export default function Home() {
           },
         }
       );
-      console.log(response.data);
-      setCoordinates(response.data.boxes);
+      setObjects(response.data.objects);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
@@ -136,8 +134,7 @@ export default function Home() {
           },
         }
       );
-      console.log(response.data);
-      setCoordinates(response.data.boxes);
+      setObjects(response.data.objects);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
@@ -147,7 +144,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setCoordinates([]);
+    setObjects([]);
   }, [threshold]);
 
   useEffect(() => {
@@ -267,15 +264,17 @@ export default function Home() {
                   height: "500px",
                 }}
               />
-              {coordinates.length > 0 && (
+              {objects.length > 0 && (
                 <Stage
                   width={scaledDimensions.width}
                   height={scaledDimensions.height}
                   style={{ position: "absolute", top: 0, left: 0 }}
                 >
                   <Layer>
-                    {coordinates.map((coord, index) => {
-                      const scaledCoord = calculateScaledCoordinates(coord);
+                    {objects.map((obj, index) => {
+                      const scaledCoord = calculateScaledCoordinates(
+                        obj.bounding_box
+                      );
                       return (
                         <Rect
                           key={index}
@@ -283,7 +282,7 @@ export default function Home() {
                           y={scaledCoord.y}
                           width={scaledCoord.width}
                           height={scaledCoord.height}
-                          stroke="red"
+                          stroke={obj.name == "empty" ? "red" : "green"}
                           strokeWidth={2}
                         />
                       );
