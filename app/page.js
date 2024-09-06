@@ -2,9 +2,12 @@
 
 import FileInput from "@/app/components/FileInput";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
-import { createImage, findAnswers, findBoxes, showImage } from "@/app/lib/api";
+import { createImage, findAnswers, findBoxes } from "@/app/lib/api";
+import { calculateScaledCoordinates } from "@/app/utils/imageUtils";
 import Image from "next/image";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Layer, Rect, Stage } from "react-konva";
+import ImagePreview from "@/app/components/ImagePreview";
 
 function debounce(func, wait) {
   let timeout;
@@ -13,6 +16,10 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(this, args), wait);
   };
 }
+
+const DEBOUNCE_MS = 500;
+const FIXED_IMAGE_HEIGHT = 600;
+const FIXED_TEMPLATE_HEIGHT = 50;
 
 export default function Home() {
   const [threshold, setThreshold] = useState(0.5);
@@ -23,10 +30,21 @@ export default function Home() {
   const [imageId, setImageId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [objects, setObjects] = useState([]);
+  const [scaledDimensions, setScaledDimensions] = useState({
+    width: 0,
+    height: FIXED_IMAGE_HEIGHT,
+  });
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     setSelectedImage(file);
+    const imageSrc = URL.createObjectURL(file);
+    setImageSrc(imageSrc);
   };
 
   const handleTemplateChange = (event) => {
@@ -44,8 +62,19 @@ export default function Home() {
       try {
         const createImageResponse = await createImage(selectedImage);
         setImageId(createImageResponse.data._id);
-        const imageUrl = await showImage(createImageResponse.data._id);
-        setImageSrc(imageUrl);
+        const sizes = createImageResponse.data.size;
+        setImageDimensions({
+          width: sizes.width,
+          height: sizes.height,
+        });
+        console.log(sizes);
+        const aspectRatio = sizes.width / sizes.height;
+        setScaledDimensions({
+          width: FIXED_IMAGE_HEIGHT * aspectRatio,
+          height: FIXED_IMAGE_HEIGHT,
+        });
+
+        setObjects(createImageResponse.data.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
@@ -63,16 +92,31 @@ export default function Home() {
       setError(null);
 
       try {
-        await findBoxes(imageId, selectedTemplates, threshold);
-        const imageUrl = await showImage(imageId);
-        setImageSrc(imageUrl);
+        const imageAnnotations = await findBoxes(
+          imageId,
+          selectedTemplates,
+          threshold
+        );
+        const sizes = imageAnnotations.data.size;
+        setImageDimensions({
+          width: sizes.width,
+          height: sizes.height,
+        });
+        const aspectRatio = sizes.width / sizes.height;
+        setScaledDimensions({
+          width: FIXED_IMAGE_HEIGHT * aspectRatio,
+          height: FIXED_IMAGE_HEIGHT,
+        });
+        console.log(aspectRatio);
+        console.log(FIXED_IMAGE_HEIGHT * aspectRatio);
+        setObjects(imageAnnotations.data.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
       } finally {
         setLoading(false);
       }
-    }, 500), // 500ms de debounce
+    }, DEBOUNCE_MS),
     []
   );
 
@@ -87,15 +131,24 @@ export default function Home() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-    await findAnswers(imageId, 0.9);
-    const imageUrl = await showImage(imageId);
-    setImageSrc(imageUrl);
+    const imageAnnotations = await findAnswers(imageId, 0.9);
+    const sizes = imageAnnotations.data.size;
+    setImageDimensions({
+      width: sizes.width,
+      height: sizes.height,
+    });
+    const aspectRatio = sizes.width / sizes.height;
+    setScaledDimensions({
+      width: FIXED_IMAGE_HEIGHT * aspectRatio,
+      height: FIXED_IMAGE_HEIGHT,
+    });
+    setObjects(imageAnnotations.data.objects);
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-10xl p-8 bg-white shadow-lg rounded-lg flex">
+      <div className="w-full max-w-10xl h-[800px] p-8 bg-white shadow-lg rounded-lg flex">
         <div className="w-1/5 flex flex-col space-y-3">
           <h2 className="text-2xl font-bold mb-6 text-center">
             Escolha um teste e um template
@@ -125,26 +178,58 @@ export default function Home() {
         <div className="flex flex-col space-y-3 w-2/3 items-center">
           <h2 className="text-lg font-semibold">Teste:</h2>
           {!imageSrc && (
-            <div className="flex h-[500px] items-center">
+            <div className={`flex h-[${FIXED_IMAGE_HEIGHT}px] items-center`}>
               <p>Selecione um teste para exibir a visualização.</p>
             </div>
           )}
           {imageSrc && (
-            <Image
-              src={imageSrc}
-              alt="Teste"
-              className="rounded-lg shadow-lg"
-              height={0}
-              width={0}
+            <div
               style={{
-                width: "auto",
-                height: "500px",
+                position: "relative",
+                width: scaledDimensions.width,
+                height: scaledDimensions.height,
               }}
-            />
+            >
+              <ImagePreview
+                src={imageSrc}
+                alt="Teste"
+                className="rounded-lg shadow-lg"
+                width={scaledDimensions.width}
+                height={`${FIXED_IMAGE_HEIGHT}px`}
+              />
+              {objects.length > 0 && (
+                <Stage
+                  width={scaledDimensions.width}
+                  height={scaledDimensions.height}
+                  style={{ position: "absolute", top: 0, left: 0 }}
+                >
+                  <Layer>
+                    {objects.map((obj, index) => {
+                      const scaledCoord = calculateScaledCoordinates(
+                        obj.bounding_box,
+                        scaledDimensions,
+                        imageDimensions
+                      );
+                      return (
+                        <Rect
+                          key={index}
+                          x={scaledCoord.x}
+                          y={scaledCoord.y}
+                          width={scaledCoord.width}
+                          height={scaledCoord.height}
+                          stroke={obj.name === "empty" ? "red" : "green"}
+                          strokeWidth={1}
+                        />
+                      );
+                    })}
+                  </Layer>
+                </Stage>
+              )}
+            </div>
           )}
           <h2 className="text-lg font-semibold">Templates:</h2>
           {templatesSrc.length === 0 && (
-            <div className="flex h-[100px] items-center">
+            <div className={`flex h-[${FIXED_TEMPLATE_HEIGHT}px] items-center`}>
               <p>Selecione um template para exibir a visualização.</p>
             </div>
           )}
@@ -157,7 +242,10 @@ export default function Home() {
                   alt={`Template ${index + 1}`}
                   height={0}
                   width={0}
-                  style={{ width: "auto", height: "100px" }}
+                  style={{
+                    width: "auto",
+                    height: `${FIXED_TEMPLATE_HEIGHT}px`,
+                  }}
                 />
               ))}
             </div>
