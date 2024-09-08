@@ -29,9 +29,9 @@ export async function findBoxes(image_id, box_images, threshold) {
   return response;
 }
 
-export async function findAnswers(image_id, threshold) {
+export async function findAnswers(image_id) {
   const response = await axios.post(
-    `${process.env.NEXT_PUBLIC_API_URL}/find_answers/?image_id=${image_id}&prediction_threshold=${threshold}`
+    `${process.env.NEXT_PUBLIC_API_URL}/find_answers/?image_id=${image_id}`
   );
   return response;
 }

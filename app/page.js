@@ -3,7 +3,7 @@
 import FileInput from "@/app/components/FileInput";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
 import { createImage, findAnswers, findBoxes } from "@/app/lib/api";
-import { calculateScaledCoordinates } from "@/app/utils/imageUtils";
+import { calculateScaledCoordinates, getColor } from "@/app/utils/imageUtils";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { Layer, Rect, Stage } from "react-konva";
@@ -131,7 +131,7 @@ export default function Home() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-    const imageAnnotations = await findAnswers(imageId, 0.9);
+    const imageAnnotations = await findAnswers(imageId);
     const sizes = imageAnnotations.data.size;
     setImageDimensions({
       width: sizes.width,
@@ -217,7 +217,7 @@ export default function Home() {
                           y={scaledCoord.y}
                           width={scaledCoord.width}
                           height={scaledCoord.height}
-                          stroke={obj.name === "empty" ? "red" : "green"}
+                          stroke={getColor(obj.name)}
                           strokeWidth={1}
                         />
                       );
