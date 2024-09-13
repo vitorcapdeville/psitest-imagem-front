@@ -35,3 +35,10 @@ export async function findAnswers(image_id) {
   );
   return response;
 }
+
+export async function getQa(image_id) {
+  const response = await axios.get(
+    `${process.env.NEXT_PUBLIC_API_URL}/questions_and_answers/?image_id=${image_id}`
+  );
+  return response;
+}

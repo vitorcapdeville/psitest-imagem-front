@@ -2,7 +2,7 @@
 
 import FileInput from "@/app/components/FileInput";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
-import { createImage, findAnswers, findBoxes } from "@/app/lib/api";
+import { createImage, findAnswers, findBoxes, getQa } from "@/app/lib/api";
 import { calculateScaledCoordinates, getColor } from "@/app/utils/imageUtils";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
@@ -31,6 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [objects, setObjects] = useState([]);
+  const [qa, setQa] = useState({});
   const [scaledDimensions, setScaledDimensions] = useState({
     width: 0,
     height: FIXED_IMAGE_HEIGHT,
@@ -73,7 +74,7 @@ export default function Home() {
           width: FIXED_IMAGE_HEIGHT * aspectRatio,
           height: FIXED_IMAGE_HEIGHT,
         });
-
+        setQa({});
         setObjects(createImageResponse.data.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
@@ -110,6 +111,7 @@ export default function Home() {
         console.log(aspectRatio);
         console.log(FIXED_IMAGE_HEIGHT * aspectRatio);
         setObjects(imageAnnotations.data.objects);
+        setQa({});
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
@@ -132,6 +134,7 @@ export default function Home() {
     event.preventDefault();
     setLoading(true);
     const imageAnnotations = await findAnswers(imageId);
+    const qaResponse = await getQa(imageId);
     const sizes = imageAnnotations.data.size;
     setImageDimensions({
       width: sizes.width,
@@ -143,6 +146,7 @@ export default function Home() {
       height: FIXED_IMAGE_HEIGHT,
     });
     setObjects(imageAnnotations.data.objects);
+    setQa(qaResponse.data);
     setLoading(false);
   };
 
@@ -175,10 +179,10 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex flex-col space-y-3 w-2/3 items-center">
+        <div className="flex flex-col space-y-3 w-3/5 items-center">
           <h2 className="text-lg font-semibold">Teste:</h2>
           {!imageSrc && (
-            <div className={`flex h-[${FIXED_IMAGE_HEIGHT}px] items-center`}>
+            <div className={`flex h-[600px] items-center`}>
               <p>Selecione um teste para exibir a visualização.</p>
             </div>
           )}
@@ -229,7 +233,7 @@ export default function Home() {
           )}
           <h2 className="text-lg font-semibold">Templates:</h2>
           {templatesSrc.length === 0 && (
-            <div className={`flex h-[${FIXED_TEMPLATE_HEIGHT}px] items-center`}>
+            <div className={`flex h-[50px] items-center`}>
               <p>Selecione um template para exibir a visualização.</p>
             </div>
           )}
@@ -250,6 +254,9 @@ export default function Home() {
               ))}
             </div>
           )}
+        </div>
+        <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
+          <pre>{JSON.stringify(qa, null, 2)}</pre>
         </div>
       </div>
     </div>
