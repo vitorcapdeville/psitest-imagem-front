@@ -40,6 +40,7 @@ export default function Home() {
     width: 0,
     height: 0,
   });
+  const [rects, setRects] = useState([]);
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -150,6 +151,42 @@ export default function Home() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    const scaleX = scaledDimensions.width / imageDimensions.width;
+    const scaleY = scaledDimensions.height / imageDimensions.height;
+    setRects(
+      objects.map((obj, index) => {
+        return {
+          id: index,
+          x: obj.bounding_box.x_min * scaleX,
+          y: obj.bounding_box.y_min * scaleY,
+          width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
+          height: (obj.bounding_box.y_max - obj.bounding_box.y_min) * scaleY,
+          name: obj.name,
+        };
+      })
+    );
+  }, [objects, scaledDimensions, imageDimensions]);
+
+  const handleDragStart = (e) => {
+    setRects(
+      rects.map((rect) => {
+        return {
+          ...rect,
+        };
+      })
+    );
+  };
+  const handleDragEnd = (e) => {
+    setRects(
+      rects.map((rect) => {
+        return {
+          ...rect,
+        };
+      })
+    );
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-10xl h-[800px] p-8 bg-white shadow-lg rounded-lg flex">
@@ -208,21 +245,19 @@ export default function Home() {
                   style={{ position: "absolute", top: 0, left: 0 }}
                 >
                   <Layer>
-                    {objects.map((obj, index) => {
-                      const scaledCoord = calculateScaledCoordinates(
-                        obj.bounding_box,
-                        scaledDimensions,
-                        imageDimensions
-                      );
+                    {rects.map((rect) => {
                       return (
                         <Rect
-                          key={index}
-                          x={scaledCoord.x}
-                          y={scaledCoord.y}
-                          width={scaledCoord.width}
-                          height={scaledCoord.height}
-                          stroke={getColor(obj.name)}
+                          key={rect.id}
+                          x={rect.x}
+                          y={rect.y}
+                          width={rect.width}
+                          height={rect.height}
+                          stroke={getColor(rect.name)}
                           strokeWidth={1}
+                          draggable
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
                         />
                       );
                     })}
