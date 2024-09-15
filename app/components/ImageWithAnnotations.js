@@ -11,7 +11,7 @@ const ImageWithAnnotations = ({
   fixedHeight,
   rects,
   templateHeight,
-  handleDragEnd,
+  handleDragMove,
 }) => {
   return (
     <>
@@ -55,7 +55,7 @@ const ImageWithAnnotations = ({
                       stroke={getColor(rect.name)}
                       strokeWidth={1}
                       draggable
-                      onDragEnd={handleDragEnd}
+                      onDragMove={handleDragMove}
                     />
                   );
                 })}

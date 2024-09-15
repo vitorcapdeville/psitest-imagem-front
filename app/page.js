@@ -11,7 +11,7 @@ import {
   updateImageObjects,
 } from "@/app/lib/api";
 import { objectsToRects, rectsToObjects } from "@/app/utils/objects";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function debounce(func, wait) {
   let timeout;
@@ -45,6 +45,16 @@ export default function Home() {
     height: 0,
   });
   const [rects, setRects] = useState([]);
+  const canvasRefs = useRef([]);
+  const [image, setImage] = useState(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => {
+      setImage(img);
+    };
+  }, [imageSrc, scaledDimensions]);
 
   // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!
   useEffect(() => {
@@ -93,7 +103,37 @@ export default function Home() {
     loadDefaultImage();
     loadDefaultTemplates();
   }, []);
-  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!
+  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!\
+
+  useEffect(() => {
+    if (image) {
+      const scaleX = scaledDimensions.width / imageDimensions.width;
+      const scaleY = scaledDimensions.height / imageDimensions.height;
+      rects.forEach((rect, index) => {
+        const { x, y, width, height } = rect;
+
+        const canvas = canvasRefs.current[index];
+        const context = canvas.getContext("2d");
+
+        // Set canvas size to the dimensions of the bounding box
+        canvas.width = 3 * width;
+        canvas.height = 3 * height;
+
+        // Draw the portion of the image defined by the bounding box
+        context.drawImage(
+          image,
+          x / scaleX,
+          y / scaleY,
+          width / scaleX,
+          height / scaleY,
+          0,
+          0,
+          3 * width,
+          3 * height
+        );
+      });
+    }
+  }, [image, rects]);
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -260,6 +300,13 @@ export default function Home() {
     );
   };
 
+  const handleSelectChange = (event, index) => {
+    const updatedRects = [...rects];
+    updatedRects[index].name = event.target.value; 
+    updatedRects[index].confidence = null; 
+    setRects(updatedRects); // Atualiza o estado com o novo array de rects
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-10xl h-[800px] p-8 bg-white shadow-lg rounded-lg flex">
@@ -311,12 +358,39 @@ export default function Home() {
             fixedHeight={FIXED_IMAGE_HEIGHT}
             rects={rects}
             templateHeight={FIXED_TEMPLATE_HEIGHT}
-            handleDragEnd={handleDragEnd}
+            handleDragMove={handleDragEnd}
           />
         </div>
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
-          <pre>{JSON.stringify(qa, null, 2)}</pre>
+          {rects.map((rect, index) => {
+            return (
+              <div key={index} className="flex items-center space-x-4 mb-4">
+                <canvas
+                  key={index}
+                  ref={(el) => (canvasRefs.current[index] = el)}
+                  style={{
+                    border: "1px solid black",
+                    marginBottom: "10px",
+                  }}
+                />
+                <select
+                  name="cars"
+                  id={`label-${index}`}
+                  value={rect.name}
+                  onChange={(e) => handleSelectChange(e, index)} // Lida com a mudança
+                >
+                  <option value="unpredicted">Unpredicted</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="crossedout">Crossed out</option>
+                  <option value="empty">Empty</option>
+                </select>
+              </div>
+            );
+          })}
         </div>
+        {/* <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
+          <pre>{JSON.stringify(qa, null, 2)}</pre>
+        </div> */}
       </div>
     </div>
   );
