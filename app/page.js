@@ -2,8 +2,14 @@
 
 import FileInput from "@/app/components/FileInput";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
-import { createImage, findAnswers, findBoxes, getQa } from "@/app/lib/api";
-import { calculateScaledCoordinates, getColor } from "@/app/utils/imageUtils";
+import {
+  createImage,
+  findAnswers,
+  findBoxes,
+  getQa,
+  updateImageObjects,
+} from "@/app/lib/api";
+import { getColor } from "@/app/utils/imageUtils";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { Layer, Rect, Stage } from "react-konva";
@@ -42,6 +48,55 @@ export default function Home() {
   });
   const [rects, setRects] = useState([]);
 
+  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!
+  useEffect(() => {
+    const DEFAULT_FILE_SRC = "exam0_1_1.png";
+    const DEFAULT_TEMPLATES_SRC = ["box1.png", "box2.png"];
+    // Função para carregar a imagem padrão como um File
+    const loadDefaultImage = async () => {
+      try {
+        // Faz uma requisição HTTP para obter a imagem como um Blob
+        const response = await fetch(DEFAULT_FILE_SRC);
+        const blob = await response.blob();
+
+        // Cria um File a partir do Blob
+        const defaultFile = new File([blob], DEFAULT_FILE_SRC, {
+          type: blob.type,
+        });
+
+        // Atualiza o estado com o File e o src
+        setSelectedImage(defaultFile);
+        setImageSrc(URL.createObjectURL(defaultFile));
+      } catch (error) {
+        console.error("Erro ao carregar a imagem padrão", error);
+      }
+    };
+    const loadDefaultTemplates = async () => {
+      try {
+        const selected = await Promise.all(
+          DEFAULT_TEMPLATES_SRC.map(async (templateSrc) => {
+            const response = await fetch(templateSrc);
+            const blob = await response.blob();
+            const defaultTemplate = new File([blob], templateSrc, {
+              type: blob.type,
+            });
+            return defaultTemplate;
+          })
+        );
+        const selectedArray = Array.from(selected);
+
+        setSelectedTemplates(selectedArray);
+        setTemplatesSrc(selectedArray.map((file) => URL.createObjectURL(file)));
+      } catch (error) {
+        console.error("Erro ao carregar a imagem padrão", error);
+      }
+    };
+
+    loadDefaultImage();
+    loadDefaultTemplates();
+  }, []);
+  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!
+
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     setSelectedImage(file);
@@ -63,8 +118,8 @@ export default function Home() {
 
       try {
         const createImageResponse = await createImage(selectedImage);
-        setImageId(createImageResponse.data._id);
-        const sizes = createImageResponse.data.size;
+        setImageId(createImageResponse._id);
+        const sizes = createImageResponse.size;
         setImageDimensions({
           width: sizes.width,
           height: sizes.height,
@@ -75,7 +130,7 @@ export default function Home() {
           height: FIXED_IMAGE_HEIGHT,
         });
         setQa({});
-        setObjects(createImageResponse.data.objects);
+        setObjects(createImageResponse.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
@@ -98,7 +153,7 @@ export default function Home() {
           selectedTemplates,
           threshold
         );
-        const sizes = imageAnnotations.data.size;
+        const sizes = imageAnnotations.size;
         setImageDimensions({
           width: sizes.width,
           height: sizes.height,
@@ -108,7 +163,7 @@ export default function Home() {
           width: FIXED_IMAGE_HEIGHT * aspectRatio,
           height: FIXED_IMAGE_HEIGHT,
         });
-        setObjects(imageAnnotations.data.objects);
+        setObjects(imageAnnotations.objects);
         setQa({});
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
@@ -133,7 +188,7 @@ export default function Home() {
     setLoading(true);
     const imageAnnotations = await findAnswers(imageId);
     const qaResponse = await getQa(imageId);
-    const sizes = imageAnnotations.data.size;
+    const sizes = imageAnnotations.size;
     setImageDimensions({
       width: sizes.width,
       height: sizes.height,
@@ -143,8 +198,8 @@ export default function Home() {
       width: FIXED_IMAGE_HEIGHT * aspectRatio,
       height: FIXED_IMAGE_HEIGHT,
     });
-    setObjects(imageAnnotations.data.objects);
-    setQa(qaResponse.data);
+    setObjects(imageAnnotations.objects);
+    setQa(qaResponse);
     setLoading(false);
   };
 
@@ -159,6 +214,24 @@ export default function Home() {
         width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
         height: (obj.bounding_box.y_max - obj.bounding_box.y_min) * scaleY,
         name: obj.name,
+        confidence: obj.confidence,
+        scaleX: scaleX,
+        scaleY: scaleY,
+      };
+    });
+  };
+
+  const rectsToObjects = (rects) => {
+    return rects.map((rect) => {
+      return {
+        bounding_box: {
+          x_min: parseInt(rect.x / rect.scaleX),
+          y_min: parseInt(rect.y / rect.scaleY),
+          x_max: parseInt((rect.x + rect.width) / rect.scaleX),
+          y_max: parseInt((rect.y + rect.height) / rect.scaleY),
+        },
+        name: rect.name,
+        confidence: rect.confidence,
       };
     });
   };
@@ -172,6 +245,32 @@ export default function Home() {
     setRects(newRects);
   };
 
+  const handleSaveRects = async () => {
+    const newObjects = rectsToObjects(rects);
+    try {
+      const updatedImageAnnotations = await updateImageObjects(
+        imageId,
+        newObjects
+      );
+      const sizes = updatedImageAnnotations.size;
+      setImageDimensions({
+        width: sizes.width,
+        height: sizes.height,
+      });
+      const aspectRatio = sizes.width / sizes.height;
+      setScaledDimensions({
+        width: FIXED_IMAGE_HEIGHT * aspectRatio,
+        height: FIXED_IMAGE_HEIGHT,
+      });
+      setObjects(updatedImageAnnotations.objects);
+    } catch (error) {
+      console.error("Erro ao enviar as imagens:", error);
+      setError("Falha ao processar as imagens. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDragEnd = (e) => {
     const id = e.target.id();
     setRects(
@@ -183,6 +282,8 @@ export default function Home() {
             y: e.target.attrs.y,
             width: e.target.attrs.width,
             height: e.target.attrs.height,
+            confidence: null,
+            name: "unpredicted",
           };
         }
         return rect;
@@ -218,6 +319,13 @@ export default function Home() {
             className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
             Resetar
+          </button>
+          <button
+            onClick={handleSaveRects}
+            disabled={rects.length === 0 || loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Salvar
           </button>
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
