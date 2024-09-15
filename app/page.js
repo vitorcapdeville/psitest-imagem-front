@@ -69,7 +69,6 @@ export default function Home() {
           width: sizes.width,
           height: sizes.height,
         });
-        console.log(sizes);
         const aspectRatio = sizes.width / sizes.height;
         setScaledDimensions({
           width: FIXED_IMAGE_HEIGHT * aspectRatio,
@@ -109,8 +108,6 @@ export default function Home() {
           width: FIXED_IMAGE_HEIGHT * aspectRatio,
           height: FIXED_IMAGE_HEIGHT,
         });
-        console.log(aspectRatio);
-        console.log(FIXED_IMAGE_HEIGHT * aspectRatio);
         setObjects(imageAnnotations.data.objects);
         setQa({});
       } catch (error) {
@@ -151,38 +148,44 @@ export default function Home() {
     setLoading(false);
   };
 
-  useEffect(() => {
+  const objectsToRects = (objects) => {
     const scaleX = scaledDimensions.width / imageDimensions.width;
     const scaleY = scaledDimensions.height / imageDimensions.height;
-    setRects(
-      objects.map((obj, index) => {
-        return {
-          id: index,
-          x: obj.bounding_box.x_min * scaleX,
-          y: obj.bounding_box.y_min * scaleY,
-          width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
-          height: (obj.bounding_box.y_max - obj.bounding_box.y_min) * scaleY,
-          name: obj.name,
-        };
-      })
-    );
+    return objects.map((obj, index) => {
+      return {
+        id: index,
+        x: obj.bounding_box.x_min * scaleX,
+        y: obj.bounding_box.y_min * scaleY,
+        width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
+        height: (obj.bounding_box.y_max - obj.bounding_box.y_min) * scaleY,
+        name: obj.name,
+      };
+    });
+  };
+
+  useEffect(() => {
+    setRects(objectsToRects(objects));
   }, [objects, scaledDimensions, imageDimensions]);
 
-  const handleDragStart = (e) => {
-    setRects(
-      rects.map((rect) => {
-        return {
-          ...rect,
-        };
-      })
-    );
+  const handleResetRect = () => {
+    const newRects = objectsToRects(objects);
+    setRects(newRects);
   };
+
   const handleDragEnd = (e) => {
+    const id = e.target.id();
     setRects(
       rects.map((rect) => {
-        return {
-          ...rect,
-        };
+        if (rect.id === id) {
+          return {
+            ...rect,
+            x: e.target.attrs.x,
+            y: e.target.attrs.y,
+            width: e.target.attrs.width,
+            height: e.target.attrs.height,
+          };
+        }
+        return rect;
       })
     );
   };
@@ -209,6 +212,13 @@ export default function Home() {
               {loading ? "Processando..." : "Processar"}
             </button>
           </form>
+          <button
+            onClick={handleResetRect}
+            disabled={rects.length === 0 || loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Resetar
+          </button>
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
               {error}
@@ -249,6 +259,7 @@ export default function Home() {
                       return (
                         <Rect
                           key={rect.id}
+                          id={rect.id}
                           x={rect.x}
                           y={rect.y}
                           width={rect.width}
@@ -256,7 +267,6 @@ export default function Home() {
                           stroke={getColor(rect.name)}
                           strokeWidth={1}
                           draggable
-                          onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
                         />
                       );
