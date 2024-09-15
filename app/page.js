@@ -1,6 +1,7 @@
 "use client";
 
 import FileInput from "@/app/components/FileInput";
+import ImageWithAnnotations from "@/app/components/ImageWithAnnotations";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
 import {
   createImage,
@@ -9,11 +10,8 @@ import {
   getQa,
   updateImageObjects,
 } from "@/app/lib/api";
-import { getColor } from "@/app/utils/imageUtils";
-import Image from "next/image";
+import { objectsToRects, rectsToObjects } from "@/app/utils/objects";
 import { useCallback, useEffect, useState } from "react";
-import { Layer, Rect, Stage } from "react-konva";
-import ImagePreview from "@/app/components/ImagePreview";
 
 function debounce(func, wait) {
   let timeout;
@@ -203,45 +201,16 @@ export default function Home() {
     setLoading(false);
   };
 
-  const objectsToRects = (objects) => {
+  useEffect(() => {
     const scaleX = scaledDimensions.width / imageDimensions.width;
     const scaleY = scaledDimensions.height / imageDimensions.height;
-    return objects.map((obj, index) => {
-      return {
-        id: index,
-        x: obj.bounding_box.x_min * scaleX,
-        y: obj.bounding_box.y_min * scaleY,
-        width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
-        height: (obj.bounding_box.y_max - obj.bounding_box.y_min) * scaleY,
-        name: obj.name,
-        confidence: obj.confidence,
-        scaleX: scaleX,
-        scaleY: scaleY,
-      };
-    });
-  };
-
-  const rectsToObjects = (rects) => {
-    return rects.map((rect) => {
-      return {
-        bounding_box: {
-          x_min: parseInt(rect.x / rect.scaleX),
-          y_min: parseInt(rect.y / rect.scaleY),
-          x_max: parseInt((rect.x + rect.width) / rect.scaleX),
-          y_max: parseInt((rect.y + rect.height) / rect.scaleY),
-        },
-        name: rect.name,
-        confidence: rect.confidence,
-      };
-    });
-  };
-
-  useEffect(() => {
-    setRects(objectsToRects(objects));
+    setRects(objectsToRects(objects, scaleX, scaleY));
   }, [objects, scaledDimensions, imageDimensions]);
 
   const handleResetRect = () => {
-    const newRects = objectsToRects(objects);
+    const scaleX = scaledDimensions.width / imageDimensions.width;
+    const scaleY = scaledDimensions.height / imageDimensions.height;
+    const newRects = objectsToRects(objects, scaleX, scaleY);
     setRects(newRects);
   };
 
@@ -333,80 +302,17 @@ export default function Home() {
             </div>
           )}
         </div>
-
         <div className="flex flex-col space-y-3 w-3/5 items-center">
-          <h2 className="text-lg font-semibold">Teste:</h2>
-          {!imageSrc && (
-            <div className={`flex h-[600px] items-center`}>
-              <p>Selecione um teste para exibir a visualização.</p>
-            </div>
-          )}
-          {imageSrc && (
-            <div
-              style={{
-                position: "relative",
-                width: scaledDimensions.width,
-                height: scaledDimensions.height,
-              }}
-            >
-              <ImagePreview
-                src={imageSrc}
-                alt="Teste"
-                className="rounded-lg shadow-lg"
-                width={scaledDimensions.width}
-                height={`${FIXED_IMAGE_HEIGHT}px`}
-              />
-              {objects.length > 0 && (
-                <Stage
-                  width={scaledDimensions.width}
-                  height={scaledDimensions.height}
-                  style={{ position: "absolute", top: 0, left: 0 }}
-                >
-                  <Layer>
-                    {rects.map((rect) => {
-                      return (
-                        <Rect
-                          key={rect.id}
-                          id={rect.id}
-                          x={rect.x}
-                          y={rect.y}
-                          width={rect.width}
-                          height={rect.height}
-                          stroke={getColor(rect.name)}
-                          strokeWidth={1}
-                          draggable
-                          onDragEnd={handleDragEnd}
-                        />
-                      );
-                    })}
-                  </Layer>
-                </Stage>
-              )}
-            </div>
-          )}
-          <h2 className="text-lg font-semibold">Templates:</h2>
-          {templatesSrc.length === 0 && (
-            <div className={`flex h-[50px] items-center`}>
-              <p>Selecione um template para exibir a visualização.</p>
-            </div>
-          )}
-          {templatesSrc.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {templatesSrc.map((src, index) => (
-                <Image
-                  key={index}
-                  src={src}
-                  alt={`Template ${index + 1}`}
-                  height={0}
-                  width={0}
-                  style={{
-                    width: "auto",
-                    height: `${FIXED_TEMPLATE_HEIGHT}px`,
-                  }}
-                />
-              ))}
-            </div>
-          )}
+          <ImageWithAnnotations
+            imageSrc={imageSrc}
+            templatesSrc={templatesSrc}
+            scaledWidth={scaledDimensions.width}
+            scaledHeight={scaledDimensions.height}
+            fixedHeight={FIXED_IMAGE_HEIGHT}
+            rects={rects}
+            templateHeight={FIXED_TEMPLATE_HEIGHT}
+            handleDragEnd={handleDragEnd}
+          />
         </div>
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
           <pre>{JSON.stringify(qa, null, 2)}</pre>
