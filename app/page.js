@@ -20,6 +20,7 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(this, args), wait);
   };
 }
+import { FaTrashAlt } from "react-icons/fa";
 
 const DEBOUNCE_MS = 500;
 const FIXED_IMAGE_HEIGHT = 600;
@@ -318,6 +319,35 @@ export default function Home() {
     setRects(rectangles);
   };
 
+  const handleNewRect = () => {
+    const scaleX = scaledDimensions.width / imageDimensions.width;
+    const scaleY = scaledDimensions.height / imageDimensions.height;
+    const x = 10;
+    const y = 10;
+    const width = 21;
+    const height = 15;
+
+    const newRects = rects.concat({
+      id: parseInt(
+        (rects.length > rects.length > 0 ? rects[rects.length - 1].id : 00 ? rects[rects.length - 1].id : 0) + 1
+      ).toString(),
+      x,
+      y,
+      width,
+      height,
+      confidence: null,
+      name: "unpredicted",
+      scaleX,
+      scaleY,
+    });
+    setRects(newRects);
+  };
+
+  const handleDeleteRect = (index) => {
+    const newRects = rects.filter((rect) => rect.id !== index);
+    setRects(newRects);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-10xl h-[800px] p-8 bg-white shadow-lg rounded-lg flex">
@@ -340,6 +370,14 @@ export default function Home() {
               {loading ? "Processando..." : "Processar"}
             </button>
           </form>
+          <hr></hr>
+          <button
+            onClick={handleNewRect}
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Adicionar caixa
+          </button>
           <button
             onClick={handleResetRect}
             disabled={rects.length === 0 || loading}
@@ -354,6 +392,7 @@ export default function Home() {
           >
             Salvar
           </button>
+
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
               {error}
@@ -396,6 +435,13 @@ export default function Home() {
                   <option value="crossedout">Crossed out</option>
                   <option value="empty">Empty</option>
                 </select>
+                <button
+                  onClick={() => {
+                    handleDeleteRect(rect.id);
+                  }}
+                >
+                  <FaTrashAlt />
+                </button>
               </div>
             );
           })}

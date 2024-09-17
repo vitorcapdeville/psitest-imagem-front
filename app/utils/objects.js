@@ -1,7 +1,7 @@
 export const objectsToRects = (objects, scaleX, scaleY) => {
   return objects.map((obj, index) => {
     return {
-      id: index,
+      id: index.toString(),
       x: obj.bounding_box.x_min * scaleX,
       y: obj.bounding_box.y_min * scaleY,
       width: (obj.bounding_box.x_max - obj.bounding_box.x_min) * scaleX,
