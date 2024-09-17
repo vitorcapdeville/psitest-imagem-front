@@ -116,9 +116,8 @@ export default function Home() {
         const context = canvas.getContext("2d");
 
         // Set canvas size to the dimensions of the bounding box
-        canvas.width = 3 * width;
-        canvas.height = 3 * height;
-
+        canvas.width = 65;
+        canvas.height = 45;
         // Draw the portion of the image defined by the bounding box
         context.drawImage(
           image,
@@ -128,8 +127,8 @@ export default function Home() {
           height / scaleY,
           0,
           0,
-          3 * width,
-          3 * height
+          65,
+          45
         );
       });
     }
@@ -302,9 +301,21 @@ export default function Home() {
 
   const handleSelectChange = (event, index) => {
     const updatedRects = [...rects];
-    updatedRects[index].name = event.target.value; 
-    updatedRects[index].confidence = null; 
-    setRects(updatedRects); // Atualiza o estado com o novo array de rects
+    updatedRects[index].name = event.target.value;
+    updatedRects[index].confidence = null;
+    setRects(updatedRects);
+  };
+
+  const onChange = (newAttrs) => {
+    const rectangles = rects.slice();
+    rectangles[newAttrs.id] = {
+      ...rectangles[newAttrs.id],
+      x: newAttrs.x,
+      y: newAttrs.y,
+      width: newAttrs.width,
+      height: newAttrs.height,
+    };
+    setRects(rectangles);
   };
 
   return (
@@ -359,6 +370,7 @@ export default function Home() {
             rects={rects}
             templateHeight={FIXED_TEMPLATE_HEIGHT}
             handleDragMove={handleDragEnd}
+            onChange={onChange}
           />
         </div>
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">

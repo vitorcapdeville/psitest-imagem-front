@@ -1,7 +1,9 @@
 import ImagePreview from "@/app/components/ImagePreview";
+import ResizableRectangle from "@/app/components/ResizableRectangle";
 import { getColor } from "@/app/utils/image";
 import Image from "next/image";
-import { Layer, Rect, Stage } from "react-konva";
+import { useState } from "react";
+import { Layer, Stage } from "react-konva";
 
 const ImageWithAnnotations = ({
   imageSrc,
@@ -12,7 +14,18 @@ const ImageWithAnnotations = ({
   rects,
   templateHeight,
   handleDragMove,
+  onChange,
 }) => {
+  const [selectedId, selectShape] = useState(null);
+
+  const checkDeselect = (e) => {
+    // deselect when clicked on empty area
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (clickedOnEmpty) {
+      selectShape(null);
+    }
+  };
+
   return (
     <>
       <h2 className="text-lg font-semibold">Teste:</h2>
@@ -41,11 +54,13 @@ const ImageWithAnnotations = ({
               width={scaledWidth}
               height={scaledHeight}
               style={{ position: "absolute", top: 0, left: 0 }}
+              onMouseDown={checkDeselect}
+              onTouchStart={checkDeselect}
             >
               <Layer>
                 {rects.map((rect) => {
                   return (
-                    <Rect
+                    <ResizableRectangle
                       key={rect.id}
                       id={rect.id}
                       x={rect.x}
@@ -56,6 +71,11 @@ const ImageWithAnnotations = ({
                       strokeWidth={1}
                       draggable
                       onDragMove={handleDragMove}
+                      isSelected={rect.id === selectedId}
+                      onSelect={() => {
+                        selectShape(rect.id);
+                      }}
+                      onChange={onChange}
                     />
                   );
                 })}
