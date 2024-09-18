@@ -12,6 +12,7 @@ import {
 } from "@/app/lib/api";
 import { objectsToRects, rectsToObjects } from "@/app/utils/objects";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaTrashAlt } from "react-icons/fa";
 
 function debounce(func, wait) {
   let timeout;
@@ -20,7 +21,6 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(this, args), wait);
   };
 }
-import { FaTrashAlt } from "react-icons/fa";
 
 const DEBOUNCE_MS = 500;
 const FIXED_IMAGE_HEIGHT = 600;
@@ -172,6 +172,7 @@ export default function Home() {
         const createImageResponse = await createImage(selectedImage);
         setImageId(createImageResponse._id);
         const sizes = createImageResponse.size;
+        const qaResponse = await getQa(createImageResponse._id);
         setImageDimensions({
           width: sizes.width,
           height: sizes.height,
@@ -181,7 +182,7 @@ export default function Home() {
           width: FIXED_IMAGE_HEIGHT * aspectRatio,
           height: FIXED_IMAGE_HEIGHT,
         });
-        setQa({});
+        setQa(qaResponse);
         setObjects(createImageResponse.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
@@ -205,6 +206,7 @@ export default function Home() {
           selectedTemplates,
           threshold
         );
+        const qaResponse = await getQa(imageId);
         const sizes = imageAnnotations.size;
         setImageDimensions({
           width: sizes.width,
@@ -216,7 +218,7 @@ export default function Home() {
           height: FIXED_IMAGE_HEIGHT,
         });
         setObjects(imageAnnotations.objects);
-        setQa({});
+        setQa(qaResponse);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
@@ -275,6 +277,7 @@ export default function Home() {
         imageId,
         newObjects
       );
+      const qaResponse = await getQa(imageId);
       const sizes = updatedImageAnnotations.size;
       setImageDimensions({
         width: sizes.width,
@@ -286,6 +289,7 @@ export default function Home() {
         height: FIXED_IMAGE_HEIGHT,
       });
       setObjects(updatedImageAnnotations.objects);
+      setQa(qaResponse);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
