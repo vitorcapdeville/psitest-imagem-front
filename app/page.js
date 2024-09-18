@@ -329,7 +329,7 @@ export default function Home() {
 
     const newRects = rects.concat({
       id: parseInt(
-        (rects.length > rects.length > 0 ? rects[rects.length - 1].id : 00 ? rects[rects.length - 1].id : 0) + 1
+        (rects.length > 0 ? rects[rects.length - 1].id : 0) + 1
       ).toString(),
       x,
       y,
