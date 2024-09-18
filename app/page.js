@@ -48,6 +48,15 @@ export default function Home() {
   const [rects, setRects] = useState([]);
   const canvasRefs = useRef([]);
   const [image, setImage] = useState(null);
+  const [selectedId, selectShape] = useState(null);
+
+  const checkDeselect = (e) => {
+    // deselect when clicked on empty area
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (clickedOnEmpty) {
+      selectShape(null);
+    }
+  };
 
   useEffect(() => {
     const img = new Image();
@@ -114,26 +123,31 @@ export default function Home() {
         const { x, y, width, height } = rect;
 
         const canvas = canvasRefs.current[index];
-        const context = canvas.getContext("2d");
 
-        // Set canvas size to the dimensions of the bounding box
-        canvas.width = 65;
-        canvas.height = 45;
-        // Draw the portion of the image defined by the bounding box
-        context.drawImage(
-          image,
-          x / scaleX,
-          y / scaleY,
-          width / scaleX,
-          height / scaleY,
-          0,
-          0,
-          65,
-          45
-        );
+        // Verifique se o canvas existe antes de acessar seu contexto
+        if (canvas) {
+          const context = canvas.getContext("2d");
+
+          // Set canvas size to the dimensions of the bounding box
+          canvas.width = 65;
+          canvas.height = 45;
+
+          // Draw the portion of the image defined by the bounding box
+          context.drawImage(
+            image,
+            x / scaleX,
+            y / scaleY,
+            width / scaleX,
+            height / scaleY,
+            0,
+            0,
+            65,
+            45
+          );
+        }
       });
     }
-  }, [image, rects]);
+  }, [image, rects, selectedId]);
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -410,45 +424,54 @@ export default function Home() {
             templateHeight={FIXED_TEMPLATE_HEIGHT}
             handleDragMove={handleDragEnd}
             onChange={onChange}
+            selectedId={selectedId}
+            selectShape={selectShape}
+            checkDeselect={checkDeselect}
           />
         </div>
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
+          <pre>{JSON.stringify(qa, null, 2)}</pre>
           {rects.map((rect, index) => {
-            return (
-              <div key={index} className="flex items-center space-x-4 mb-4">
-                <canvas
-                  key={index}
-                  ref={(el) => (canvasRefs.current[index] = el)}
-                  style={{
-                    border: "1px solid black",
-                    marginBottom: "10px",
-                  }}
-                />
-                <select
-                  name="cars"
-                  id={`label-${index}`}
-                  value={rect.name}
-                  onChange={(e) => handleSelectChange(e, index)} // Lida com a mudança
-                >
-                  <option value="unpredicted">Unpredicted</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="crossedout">Crossed out</option>
-                  <option value="empty">Empty</option>
-                </select>
-                <button
-                  onClick={() => {
-                    handleDeleteRect(rect.id);
-                  }}
-                >
-                  <FaTrashAlt />
-                </button>
-              </div>
-            );
+            if (rect.id === selectedId) {
+              return (
+                <div key={index} className="flex items-center space-x-4 mb-4">
+                  <canvas
+                    key={index}
+                    ref={(el) => (canvasRefs.current[index] = el)}
+                    width={65} // Definido diretamente no atributo HTML
+                    height={45} // Definido diretamente no atributo HTML
+                    style={{
+                      width: "65px", // Garante que o CSS siga o tamanho definido
+                      height: "45px",
+                      border: "1px solid black",
+                      marginBottom: "10px",
+                    }}
+                  />
+
+                  <select
+                    name="cars"
+                    id={`label-${index}`}
+                    value={rect.name}
+                    onChange={(e) => handleSelectChange(e, index)}
+                  >
+                    <option value="unpredicted">Unpredicted</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="crossedout">Crossed out</option>
+                    <option value="empty">Empty</option>
+                  </select>
+                  <button
+                    onClick={() => {
+                      handleDeleteRect(rect.id);
+                    }}
+                  >
+                    <FaTrashAlt />
+                  </button>
+                </div>
+              );
+            }
+            return null; // Não renderiza nada para as anotações não selecionadas
           })}
         </div>
-        {/* <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
-          <pre>{JSON.stringify(qa, null, 2)}</pre>
-        </div> */}
       </div>
     </div>
   );

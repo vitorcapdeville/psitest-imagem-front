@@ -15,17 +15,10 @@ const ImageWithAnnotations = ({
   templateHeight,
   handleDragMove,
   onChange,
+  selectedId,
+  selectShape,
+  checkDeselect,
 }) => {
-  const [selectedId, selectShape] = useState(null);
-
-  const checkDeselect = (e) => {
-    // deselect when clicked on empty area
-    const clickedOnEmpty = e.target === e.target.getStage();
-    if (clickedOnEmpty) {
-      selectShape(null);
-    }
-  };
-
   return (
     <>
       <h2 className="text-lg font-semibold">Teste:</h2>
