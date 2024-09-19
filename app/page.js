@@ -49,14 +49,6 @@ export default function Home() {
   const [image, setImage] = useState(null);
   const [selectedId, selectShape] = useState(null);
 
-  const checkDeselect = (e) => {
-    // deselect when clicked on empty area
-    const clickedOnEmpty = e.target === e.target.getStage();
-    if (clickedOnEmpty) {
-      selectShape(null);
-    }
-  };
-
   useEffect(() => {
     const img = new Image();
     img.src = imageSrc;
@@ -263,38 +255,6 @@ export default function Home() {
     }
   };
 
-  const handleDragEnd = (e) => {
-    const id = e.target.id();
-    setRects(
-      rects.map((rect) => {
-        if (rect.id === id) {
-          return {
-            ...rect,
-            x: e.target.attrs.x,
-            y: e.target.attrs.y,
-            width: e.target.attrs.width,
-            height: e.target.attrs.height,
-            confidence: null,
-            name: "unpredicted",
-          };
-        }
-        return rect;
-      })
-    );
-  };
-
-  const onChange = (newAttrs) => {
-    const rectangles = rects.slice();
-    rectangles[newAttrs.id] = {
-      ...rectangles[newAttrs.id],
-      x: newAttrs.x,
-      y: newAttrs.y,
-      width: newAttrs.width,
-      height: newAttrs.height,
-    };
-    setRects(rectangles);
-  };
-
   const handleNewRect = () => {
     const scaleX = scaledDimensions.width / imageDimensions.width;
     const scaleY = scaledDimensions.height / imageDimensions.height;
@@ -379,11 +339,9 @@ export default function Home() {
             fixedHeight={FIXED_IMAGE_HEIGHT}
             rects={rects}
             templateHeight={FIXED_TEMPLATE_HEIGHT}
-            handleDragMove={handleDragEnd}
-            onChange={onChange}
+            setRects={setRects}
             selectedId={selectedId}
             selectShape={selectShape}
-            checkDeselect={checkDeselect}
           />
         </div>
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">

@@ -13,12 +13,50 @@ const ImageWithAnnotations = ({
   fixedHeight,
   rects,
   templateHeight,
-  handleDragMove,
-  onChange,
+  setRects,
   selectedId,
   selectShape,
-  checkDeselect,
 }) => {
+  const handleDragMove = (e) => {
+    const id = e.target.id();
+    setRects(
+      rects.map((rect) => {
+        if (rect.id === id) {
+          return {
+            ...rect,
+            x: e.target.attrs.x,
+            y: e.target.attrs.y,
+            width: e.target.attrs.width,
+            height: e.target.attrs.height,
+            confidence: null,
+            name: "unpredicted",
+          };
+        }
+        return rect;
+      })
+    );
+  };
+
+  const onChange = (newAttrs) => {
+    const rectangles = rects.slice();
+    rectangles[newAttrs.id] = {
+      ...rectangles[newAttrs.id],
+      x: newAttrs.x,
+      y: newAttrs.y,
+      width: newAttrs.width,
+      height: newAttrs.height,
+    };
+    setRects(rectangles);
+  };
+
+  const checkDeselect = (e) => {
+    // deselect when clicked on empty area
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (clickedOnEmpty) {
+      selectShape(null);
+    }
+  };
+
   return (
     <>
       <h2 className="text-lg font-semibold">Teste:</h2>
