@@ -2,7 +2,6 @@ import ImagePreview from "@/app/components/ImagePreview";
 import ResizableRectangle from "@/app/components/ResizableRectangle";
 import { getColor } from "@/app/utils/image";
 import Image from "next/image";
-import { useState } from "react";
 import { Layer, Stage } from "react-konva";
 
 const ImageWithAnnotations = ({

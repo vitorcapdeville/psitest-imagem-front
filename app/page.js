@@ -3,6 +3,7 @@
 import AnnotationEdit from "@/app/components/AnnotationEdit";
 import FileInput from "@/app/components/FileInput";
 import ImageWithAnnotations from "@/app/components/ImageWithAnnotations";
+import RectControls from "@/app/components/RectControls";
 import ThresholdSlider from "@/app/components/ThresholdSlider";
 import {
   createImage,
@@ -220,13 +221,6 @@ export default function Home() {
     setRects(objectsToRects(objects, scaleX, scaleY));
   }, [objects, scaledDimensions, imageDimensions]);
 
-  const handleResetRect = () => {
-    const scaleX = scaledDimensions.width / imageDimensions.width;
-    const scaleY = scaledDimensions.height / imageDimensions.height;
-    const newRects = objectsToRects(objects, scaleX, scaleY);
-    setRects(newRects);
-  };
-
   const handleSaveRects = async () => {
     const newObjects = rectsToObjects(rects);
     try {
@@ -255,30 +249,6 @@ export default function Home() {
     }
   };
 
-  const handleNewRect = () => {
-    const scaleX = scaledDimensions.width / imageDimensions.width;
-    const scaleY = scaledDimensions.height / imageDimensions.height;
-    const x = 10;
-    const y = 10;
-    const width = 21;
-    const height = 15;
-
-    const newRects = rects.concat({
-      id: parseInt(
-        (rects.length > 0 ? rects[rects.length - 1].id : 0) + 1
-      ).toString(),
-      x,
-      y,
-      width,
-      height,
-      confidence: null,
-      name: "unpredicted",
-      scaleX,
-      scaleY,
-    });
-    setRects(newRects);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-10xl h-[800px] p-8 bg-white shadow-lg rounded-lg flex">
@@ -302,27 +272,15 @@ export default function Home() {
             </button>
           </form>
           <hr></hr>
-          <button
-            onClick={handleNewRect}
-            disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Adicionar caixa
-          </button>
-          <button
-            onClick={handleResetRect}
-            disabled={rects.length === 0 || loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Resetar
-          </button>
-          <button
-            onClick={handleSaveRects}
-            disabled={rects.length === 0 || loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Salvar
-          </button>
+          <RectControls
+            rects={rects}
+            setRects={setRects}
+            loading={loading}
+            scaleX={scaledDimensions.width / imageDimensions.width}
+            scaleY={scaledDimensions.height / imageDimensions.height}
+            handleSaveRects={handleSaveRects}
+            objects={objects}
+          />
 
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
