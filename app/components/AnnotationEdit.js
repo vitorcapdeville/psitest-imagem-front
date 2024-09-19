@@ -1,17 +1,27 @@
 import { FaTrashAlt } from "react-icons/fa";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 const CANVAS_WIDTH = 65;
 const CANVAS_HEIGHT = 45;
 
 const AnnotationEdit = ({
-  image,
+  imageSrc,
   rects,
   setRects,
   scaleX,
   scaleY,
   selectedId,
 }) => {
+  const [image, setImage] = useState(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => {
+      setImage(img);
+    };
+  }, [imageSrc]);
+
   const canvasRefs = useRef([]);
   useEffect(() => {
     if (image) {

@@ -4,7 +4,6 @@ import AnnotationEdit from "@/app/components/AnnotationEdit";
 import FileInput from "@/app/components/FileInput";
 import ImageWithAnnotations from "@/app/components/ImageWithAnnotations";
 import RectControls from "@/app/components/RectControls";
-import ThresholdSlider from "@/app/components/ThresholdSlider";
 import {
   createImage,
   findAnswers,
@@ -47,16 +46,7 @@ export default function Home() {
     height: 0,
   });
   const [rects, setRects] = useState([]);
-  const [image, setImage] = useState(null);
   const [selectedId, selectShape] = useState(null);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => {
-      setImage(img);
-    };
-  }, [imageSrc, scaledDimensions]);
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -252,7 +242,7 @@ export default function Home() {
         <div className="flex flex-col space-y-3 w-1/5 items-left overflow-y-scroll">
           <pre>{JSON.stringify(qa, null, 2)}</pre>
           <AnnotationEdit
-            image={image}
+            imageSrc={imageSrc}
             rects={rects}
             setRects={setRects}
             scaleX={scaledDimensions.width / imageDimensions.width}
