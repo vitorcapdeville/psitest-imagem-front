@@ -4,25 +4,11 @@ import AnnotationEdit from "@/app/components/AnnotationEdit";
 import FileInput from "@/app/components/FileInput";
 import ImageWithAnnotations from "@/app/components/ImageWithAnnotations";
 import RectControls from "@/app/components/RectControls";
-import {
-  createImage,
-  findAnswers,
-  findBoxes,
-  getQa,
-  updateImageObjects,
-} from "@/app/lib/api";
+import { findBoxesAction, saveImageAction } from "@/app/lib/actions";
+import { findAnswers, getQa, updateImageObjects } from "@/app/lib/api";
 import { objectsToRects, rectsToObjects } from "@/app/utils/objects";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
-const DEBOUNCE_MS = 500;
 const FIXED_IMAGE_HEIGHT = 600;
 const FIXED_TEMPLATE_HEIGHT = 50;
 const THRESHOLD_TEMPLATE = 0.5;
@@ -68,21 +54,12 @@ export default function Home() {
       setError(null);
 
       try {
-        const createImageResponse = await createImage(selectedImage);
-        setImageId(createImageResponse._id);
-        const sizes = createImageResponse.size;
-        const qaResponse = await getQa(createImageResponse._id);
-        setImageDimensions({
-          width: sizes.width,
-          height: sizes.height,
-        });
-        const aspectRatio = sizes.width / sizes.height;
-        setScaledDimensions({
-          width: FIXED_IMAGE_HEIGHT * aspectRatio,
-          height: FIXED_IMAGE_HEIGHT,
-        });
-        setQa(qaResponse);
-        setObjects(createImageResponse.objects);
+        const result = await saveImageAction(selectedImage, FIXED_IMAGE_HEIGHT);
+        setImageId(result.imageId);
+        setImageDimensions(result.imageDimensions);
+        setScaledDimensions(result.scaledDimensions);
+        setQa(result.qaResponse);
+        setObjects(result.objects);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
@@ -94,47 +71,37 @@ export default function Home() {
     fetchImage();
   }, [selectedImage]);
 
-  const fetchBoxes = useCallback(
-    debounce(async (imageId, selectedTemplates) => {
+  useEffect(() => {
+    const fetchBoxes = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const imageAnnotations = await findBoxes(
+        const result = await findBoxesAction(
           imageId,
           selectedTemplates,
-          THRESHOLD_TEMPLATE
+          THRESHOLD_TEMPLATE,
+          FIXED_IMAGE_HEIGHT
         );
-        const qaResponse = await getQa(imageId);
-        const sizes = imageAnnotations.size;
-        setImageDimensions({
-          width: sizes.width,
-          height: sizes.height,
-        });
-        const aspectRatio = sizes.width / sizes.height;
-        setScaledDimensions({
-          width: FIXED_IMAGE_HEIGHT * aspectRatio,
-          height: FIXED_IMAGE_HEIGHT,
-        });
-        setObjects(imageAnnotations.objects);
-        setQa(qaResponse);
+        setImageDimensions(result.imageDimensions);
+        setScaledDimensions(result.scaledDimensions);
+        setObjects(result.objects);
+        setQa(result.qaResponse);
       } catch (error) {
         console.error("Erro ao enviar as imagens:", error);
         setError("Falha ao processar as imagens. Tente novamente.");
       } finally {
         setLoading(false);
       }
-    }, DEBOUNCE_MS),
-    []
-  );
+    };
 
-  useEffect(() => {
     if (selectedTemplates.length === 0 || !imageId) return;
+
     setTemplatesSrc(
       selectedTemplates.map((template) => URL.createObjectURL(template))
     );
-    fetchBoxes(imageId, selectedTemplates, THRESHOLD_TEMPLATE);
-  }, [imageId, selectedTemplates, fetchBoxes]);
+    fetchBoxes();
+  }, [imageId, selectedTemplates]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
