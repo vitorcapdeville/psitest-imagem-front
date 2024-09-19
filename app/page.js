@@ -26,9 +26,9 @@ function debounce(func, wait) {
 const DEBOUNCE_MS = 500;
 const FIXED_IMAGE_HEIGHT = 600;
 const FIXED_TEMPLATE_HEIGHT = 50;
+const THRESHOLD_TEMPLATE = 0.5;
 
 export default function Home() {
-  const [threshold, setThreshold] = useState(0.5);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedTemplates, setSelectedTemplates] = useState([]);
   const [imageSrc, setImageSrc] = useState("");
@@ -57,55 +57,6 @@ export default function Home() {
       setImage(img);
     };
   }, [imageSrc, scaledDimensions]);
-
-  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!
-  useEffect(() => {
-    const DEFAULT_FILE_SRC = "exam0_1_1.png";
-    const DEFAULT_TEMPLATES_SRC = ["box1.png", "box2.png"];
-    // Função para carregar a imagem padrão como um File
-    const loadDefaultImage = async () => {
-      try {
-        // Faz uma requisição HTTP para obter a imagem como um Blob
-        const response = await fetch(DEFAULT_FILE_SRC);
-        const blob = await response.blob();
-
-        // Cria um File a partir do Blob
-        const defaultFile = new File([blob], DEFAULT_FILE_SRC, {
-          type: blob.type,
-        });
-
-        // Atualiza o estado com o File e o src
-        setSelectedImage(defaultFile);
-        setImageSrc(URL.createObjectURL(defaultFile));
-      } catch (error) {
-        console.error("Erro ao carregar a imagem padrão", error);
-      }
-    };
-    const loadDefaultTemplates = async () => {
-      try {
-        const selected = await Promise.all(
-          DEFAULT_TEMPLATES_SRC.map(async (templateSrc) => {
-            const response = await fetch(templateSrc);
-            const blob = await response.blob();
-            const defaultTemplate = new File([blob], templateSrc, {
-              type: blob.type,
-            });
-            return defaultTemplate;
-          })
-        );
-        const selectedArray = Array.from(selected);
-
-        setSelectedTemplates(selectedArray);
-        setTemplatesSrc(selectedArray.map((file) => URL.createObjectURL(file)));
-      } catch (error) {
-        console.error("Erro ao carregar a imagem padrão", error);
-      }
-    };
-
-    loadDefaultImage();
-    loadDefaultTemplates();
-  }, []);
-  // facilitar o desenvolvimento já colocando uma imagem na tela, remover dps!!\
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -154,7 +105,7 @@ export default function Home() {
   }, [selectedImage]);
 
   const fetchBoxes = useCallback(
-    debounce(async (imageId, selectedTemplates, threshold) => {
+    debounce(async (imageId, selectedTemplates) => {
       setLoading(true);
       setError(null);
 
@@ -162,7 +113,7 @@ export default function Home() {
         const imageAnnotations = await findBoxes(
           imageId,
           selectedTemplates,
-          threshold
+          THRESHOLD_TEMPLATE
         );
         const qaResponse = await getQa(imageId);
         const sizes = imageAnnotations.size;
@@ -188,12 +139,12 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (!threshold || selectedTemplates.length === 0 || !imageId) return;
+    if (selectedTemplates.length === 0 || !imageId) return;
     setTemplatesSrc(
       selectedTemplates.map((template) => URL.createObjectURL(template))
     );
-    fetchBoxes(imageId, selectedTemplates, threshold);
-  }, [imageId, selectedTemplates, threshold, fetchBoxes]);
+    fetchBoxes(imageId, selectedTemplates, THRESHOLD_TEMPLATE);
+  }, [imageId, selectedTemplates, fetchBoxes]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -259,10 +210,6 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <FileInput name="image" onChange={handleImageChange} />
             <FileInput name="image2" onChange={handleTemplateChange} multiple />
-            <ThresholdSlider
-              value={threshold}
-              onChange={(e) => setThreshold(e.target.value)}
-            />
             <button
               type="submit"
               disabled={!imageSrc || templatesSrc.length === 0 || loading}
