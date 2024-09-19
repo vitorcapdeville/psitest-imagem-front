@@ -18,6 +18,7 @@ const ImageWithAnnotations = ({
 }) => {
   const handleDragMove = (e) => {
     const id = e.target.id();
+    selectShape(id);
     setRects(
       rects.map((rect) => {
         if (rect.id === id) {
