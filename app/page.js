@@ -4,8 +4,12 @@ import AnnotationEdit from "@/app/components/AnnotationEdit";
 import FileInput from "@/app/components/FileInput";
 import ImageWithAnnotations from "@/app/components/ImageWithAnnotations";
 import RectControls from "@/app/components/RectControls";
-import { findBoxesAction, saveImageAction } from "@/app/lib/actions";
-import { findAnswers, getQa, updateImageObjects } from "@/app/lib/api";
+import {
+  findBoxesAction,
+  saveImageAction,
+  findAnswersAction,
+  updateImageAnnotationsAction,
+} from "@/app/lib/actions";
 import { objectsToRects, rectsToObjects } from "@/app/utils/objects";
 import { useEffect, useState } from "react";
 
@@ -106,20 +110,11 @@ export default function Home() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-    const imageAnnotations = await findAnswers(imageId);
-    const qaResponse = await getQa(imageId);
-    const sizes = imageAnnotations.size;
-    setImageDimensions({
-      width: sizes.width,
-      height: sizes.height,
-    });
-    const aspectRatio = sizes.width / sizes.height;
-    setScaledDimensions({
-      width: FIXED_IMAGE_HEIGHT * aspectRatio,
-      height: FIXED_IMAGE_HEIGHT,
-    });
-    setObjects(imageAnnotations.objects);
-    setQa(qaResponse);
+    const result = await findAnswersAction(imageId, FIXED_IMAGE_HEIGHT);
+    setImageDimensions(result.imageDimensions);
+    setScaledDimensions(result.scaledDimensions);
+    setObjects(result.objects);
+    setQa(result.qaResponse);
     setLoading(false);
   };
 
@@ -132,23 +127,15 @@ export default function Home() {
   const handleSaveRects = async () => {
     const newObjects = rectsToObjects(rects);
     try {
-      const updatedImageAnnotations = await updateImageObjects(
+      const result = await updateImageAnnotationsAction(
         imageId,
-        newObjects
+        newObjects,
+        FIXED_IMAGE_HEIGHT
       );
-      const qaResponse = await getQa(imageId);
-      const sizes = updatedImageAnnotations.size;
-      setImageDimensions({
-        width: sizes.width,
-        height: sizes.height,
-      });
-      const aspectRatio = sizes.width / sizes.height;
-      setScaledDimensions({
-        width: FIXED_IMAGE_HEIGHT * aspectRatio,
-        height: FIXED_IMAGE_HEIGHT,
-      });
-      setObjects(updatedImageAnnotations.objects);
-      setQa(qaResponse);
+      setImageDimensions(result.imageDimensions);
+      setScaledDimensions(result.scaledDimensions);
+      setObjects(result.objects);
+      setQa(result.qaResponse);
     } catch (error) {
       console.error("Erro ao enviar as imagens:", error);
       setError("Falha ao processar as imagens. Tente novamente.");
