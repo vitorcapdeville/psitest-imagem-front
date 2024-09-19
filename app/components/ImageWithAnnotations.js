@@ -1,4 +1,3 @@
-import ImagePreview from "@/app/components/ImagePreview";
 import ResizableRectangle from "@/app/components/ResizableRectangle";
 import { getColor } from "@/app/utils/image";
 import Image from "next/image";
@@ -73,12 +72,16 @@ const ImageWithAnnotations = ({
             height: scaledHeight,
           }}
         >
-          <ImagePreview
+          <Image
             src={imageSrc}
             alt="Teste"
             className="rounded-lg shadow-lg"
-            width={scaledWidth}
-            height={`${fixedHeight}px`}
+            height={0}
+            width={0}
+            style={{
+              width: scaledWidth || "auto",
+              height: `${fixedHeight}px` || "auto",
+            }}
           />
           {rects.length > 0 && (
             <Stage
