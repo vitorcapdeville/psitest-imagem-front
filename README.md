@@ -10,12 +10,12 @@ Por enquanto, o aplicativo é capaz de dizer se um quadrado marcado está confir
 
 O aplicativo funciona da seguinte forma:
 
-1 - Upload de uma imagem do teste de múltipla escolha/
-2 - Upload de uma ou mais imagens dos quadrados (pode ser interessante fornecer uma imagem de um quadrado vazio e de um quadrado completamente preenchido).
-3 - O aplicativo identifica a posição dos quadrados na imagem com base nos templates.
-4 - Opcionalmente, o usuário pode adicionar, remover ou editar os quadrados na imagem.
-5 - Quando o usuário estiver satisfeito com os quadrados e pressionar o botão "processar", o aplicativo identificará quais quadrados estão marcados e exibirá na tela qual foi a alternativa escolhida em cada pergunta.
-6 - Opcionalmente, o usuário pode editar a marcação de um quadrado, caso o modelo tenha errado.
+1. Upload de uma imagem do teste de múltipla escolha/
+2. Upload de uma ou mais imagens dos quadrados (pode ser interessante fornecer uma imagem de um quadrado vazio e de um quadrado completamente preenchido).
+3. O aplicativo identifica a posição dos quadrados na imagem com base nos templates.
+4. Opcionalmente, o usuário pode adicionar, remover ou editar os quadrados na imagem.
+5. Quando o usuário estiver satisfeito com os quadrados e pressionar o botão "processar", o aplicativo identificará quais quadrados estão marcados e exibirá na tela qual foi a alternativa escolhida em cada pergunta.
+6. Opcionalmente, o usuário pode editar a marcação de um quadrado, caso o modelo tenha errado.
 
 Durante todo o processo os dados sobre a posição e o label de cada quadrado é atualizado em tempo real com um banco de dados MongoDB. A ideia é que posteriormente esses dados sejam utilizados para o treinamento do modelo de segmentação de imagem, permitindo identificar as respostas para diferentes layouts de teste.
 
