@@ -19,16 +19,45 @@ O aplicativo funciona da seguinte forma:
 
 Durante todo o processo os dados sobre a posição e o label de cada quadrado é atualizado em tempo real com um banco de dados MongoDB. A ideia é que posteriormente esses dados sejam utilizados para o treinamento do modelo de segmentação de imagem, permitindo identificar as respostas para diferentes layouts de teste.
 
-## Utilização do projeto
+## Instalação
 
 Para que o aplicativo funcione, é necessário que o back-end também esteja em execução. Para isso, é necessário inicialmente clonar os dois repositórios:
 
 ```bash
-mkdir psitest-imagem
-cd psitest-imagem
+mkdir psitest
+cd psitest
 git clone https://github.com/vitorcapdeville/psitest-imagem-front.git
 git clone https://github.com/vitorcapdeville/psitest-imagem.git
 ```
+
+## Instalação via Docker
+
+Para realizar a instalação via Docker, é necessário que o Docker e o Docker Compose estejam instalados.
+
+Primeiro, é necessário criar um arquivo `docker-compose.yaml` na raiz do diretório criado:
+
+```yaml
+name: psitest
+include:
+  - psitest-imagem/docker-compose.yaml
+  - psitest-imagem-front/docker-compose.yaml
+```
+
+Antes da primeira execução, é preciso criar também uma rede.
+
+```bash
+docker network create psitest
+```
+
+Por fim, os containers podem ser inicializados com o comando:
+
+```bash
+docker-compose up
+```
+
+O aplicativo está disponível em http://localhost:3000.
+
+### Instalação local
 
 O front-end precisa de um arquivo .env na raiz do projeto com a seguinte variável de ambiente:
 
@@ -50,6 +79,14 @@ Para o front-end:
 npm install
 ```
 
+Obs: este aplicativo usa o canvas, que possui algumas dependências externas, conforme descrito na página do [npm](https://www.npmjs.com/package/canvas#compiling).
+
+No linux, é precsio executar, antes do `npm install`:
+
+```bash
+sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+```
+
 Para o back-end:
 
 ```bash
@@ -65,7 +102,7 @@ Por fim, é necessário inicializar o back-end e o front-end:
 Front-end:
 
 ```bash
-npm run dev
+npm run start
 ```
 
 Back-end:

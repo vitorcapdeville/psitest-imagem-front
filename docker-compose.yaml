@@ -1,0 +1,15 @@
+services:
+  frontend:
+    container_name: psitest-image-front
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    ports:
+      - 3000:3000
+    networks:
+      - psitest
+networks:
+  psitest:
+    external: true
